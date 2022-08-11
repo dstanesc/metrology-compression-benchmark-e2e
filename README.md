@@ -2,7 +2,8 @@
 
 React based, metrology compression benefits benchmark for larger data. Evaluating the end-to-end latency associated w/ the operation roundtrip, for both local (ie. [Tinylicious](https://github.com/microsoft/FluidFramework/tree/main/server/tinylicious)) and remote (ie. [Fluid](https://docs.microsoft.com/en-us/azure/azure-fluid-relay/)) relay services.
 
-Based on [synthetic metrology data](https://github.com/dstanesc/fake-metrology-data) and [shared-property-map](https://github.com/dstanesc/shared-property-map) libraries
+Based on [synthetic metrology data](https://github.com/dstanesc/fake-metrology-data) and [shared-property-map](https://github.com/dstanesc/shared-property-map) libraries.
+
 
 ## Fluid Relay Env Setup
 ```

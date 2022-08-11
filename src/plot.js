@@ -24,7 +24,7 @@ export function trace({ lib, count, bytes, origBytes, values, text }) {
         textposition: 'auto',
         // showlegend: false,
         // hoverinfo: 'none',
-        name: `${lib} ${origBytes} MiB`,
+        name: `${lib}, orig ${origBytes} MiB, actual ${bytes} MiB`,
         marker: {
             //color: color(lib),
             //opacity: 0.5,

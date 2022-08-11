@@ -12,6 +12,9 @@ import { layout, trace } from './plot';
 
 function App() {
 
+  const [button, setButton] = useState("Start e2e");
+  const [message, setMessage] = useState("Not Started");
+
   // local view
 
   const [localValue, setLocalValue] = useState();
@@ -38,23 +41,22 @@ function App() {
 
   const mapId = window.location.hash.substring(1) || undefined;
 
-  useEffect(() => {
-    async function init() {
-      const sharedMap = await initMap(
-        mapId,
-        updateLocalModel,
-        updateLocalModel,
-        deleteLocalModel
-      );
-      if (mapId === undefined) {
-        window.location.hash = sharedMap.mapId();
-        //sharedMap.set("keyZero", "abc");
-        //sharedMap.commit();
-      }
-      setSharedPropertyMap(sharedMap);
-      return sharedMap.mapId();
-    }
 
+  async function init() {
+    const sharedMap = await initMap(
+      mapId,
+      updateLocalModel,
+      updateLocalModel,
+      deleteLocalModel
+    );
+    if (mapId === undefined) {
+      window.location.hash = sharedMap.mapId();
+    }
+    setSharedPropertyMap(sharedMap);
+    return sharedMap.mapId();
+  }
+
+  useEffect(() => {
     init().then(localId => {
       const remoteView = initMap(
         localId,
@@ -87,7 +89,7 @@ function App() {
     endTimes.forEach((endTime, key) => {
       const startTime = startTimes.get(key);
       const duration = endTime - startTime;
-      console.log(`Setting durration for key ${key}, value=${duration}`);
+      console.log(`Setting latency for key ${key}, value=${duration}`);
       times.set(key, duration)
     });
     setDurations(times);
@@ -106,47 +108,69 @@ function App() {
   const updateRemoteModel = (key, value) => {
     const d = new Date();
     const localTime = d.getTime();
-    console.log(`Updating endTime=${localTime} remote model ${key} -> big value`);
+    console.log(`Updating remote endTime=${localTime} remote model ${key} -> big value`);
     setEndTimes(new Map(endTimes.set(key, localTime)));
     //setRemoteValue(key);
     const len = miB((new TextEncoder().encode(value)).length);
     setSizes(new Map(sizes.set(key, len)));
+    setMessage(`Received ${key}, total size ${len} MiB`);
+    if (key.startsWith(`800`))
+      setButton(`Start e2e`);
+    else
+      setButton(`Running`);
   };
 
   const deleteRemoteModel = (key) => {
     console.log(`Deleting remote model ${key}`);
+    setMessage(`Deleting ${key}`)
+    setButton(`Running`)
   };
 
   const roll = async () => {
     if (sharedPropertyMap) {
+      await cleanUp();
       const json50 = partReport({ reportSize: 50 });
       const json100 = partReport({ reportSize: 100 });
       const json300 = partReport({ reportSize: 300 });
       const json600 = partReport({ reportSize: 600 });
-      //const json800 = partReport({ reportSize: 800 });
+      const json800 = partReport({ reportSize: 800 });
 
-      await execRoll(rollJson, 50, json50);
-      await execRoll(rollPako, 50, json50);
-      await execRoll(rollLz4, 50, json50);
-      await execRoll(rollJson, 100, json100);
-      await execRoll(rollPako, 100, json100);
-      await execRoll(rollLz4, 100, json100);
-      await execRoll(rollPako, 300, json300);
-      await execRoll(rollLz4, 300, json300);
-      await execRoll(rollPako, 600, json600);
-      await execRoll(rollLz4, 600, json600);
+      await execFn(rollJson, 50, json50);
+      await execFn(rollPako, 50, json50);
+      await execFn(rollLz4, 50, json50);
+      await execFn(rollJson, 100, json100);
+      await execFn(rollPako, 100, json100);
+      await execFn(rollLz4, 100, json100);
+      await execFn(rollPako, 300, json300);
+      await execFn(rollLz4, 300, json300);
+      await execFn(rollPako, 600, json600);
+      await execFn(rollLz4, 600, json600);
+      await execFn(rollPako, 800, json800);
+
     } else {
       alert("Please wait to initialize")
     }
   }
 
+  const cleanUp = async () => {
 
-  const execRoll = (fn, size, json) => {
+    for (const key of startTimes.keys()) {
+      await execFn(() => {
+        if (sharedPropertyMap.has(key)) {
+          sharedPropertyMap.delete(key);
+          sharedPropertyMap.commit();
+        }
+      });
+    }
+  }
+
+  // Fluid fails if adding data too fast
+  const execFn = (fn, arg1, arg2) => {
+    fn(arg1, arg2);
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        fn(size, json);
         resolve();
-      }, 1 * 1000);
+      }, 3 * 1000); 
     });
   }
 
@@ -212,7 +236,10 @@ function App() {
   return (
     <div className="App">
       <div className="remote" onClick={() => roll()}>
-        [Start e2e]
+        [{button}]
+      </div>
+      <div className="message">
+        {message}
       </div>
       <div id='plotDiv'></div>
     </div>
